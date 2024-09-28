@@ -4,16 +4,30 @@ import {
   useQuery,
 } from "@tanstack/react-query";
 
-const useLuckyNumber = () => {
-  return useQuery({
-    queryKey: ["luckyNumber"],
-    queryFn: () => Promise.resolve(Math.random()),
+function MediaDevices() {
+  const { data, isError, isPending } = useQuery({
+    queryKey: ["mediaDevices"],
+    queryFn: async () => {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      return devices;
+    },
   });
-};
 
-function LuckyNumber() {
-  const { data } = useLuckyNumber();
-  return <h1>{data}</h1>;
+  if (isPending) {
+    return <p>Loading...</p>;
+  }
+
+  if (isError) {
+    return <p>Error: {isError}</p>;
+  }
+
+  return (
+    <h1>
+      {data.map((device, i) => (
+        <p key={i}>{device.label || i} Device</p>
+      ))}
+    </h1>
+  );
 }
 
 const queryClient = new QueryClient();
@@ -21,17 +35,7 @@ const queryClient = new QueryClient();
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <h1>Hello world!</h1>
-
-      {/* 
-        Deduplication
-        First resolves query places data in cache, 
-        And for others return from the cache only 
-      */}
-
-      <LuckyNumber />
-      <LuckyNumber />
-      <LuckyNumber />
+      <MediaDevices />
     </QueryClientProvider>
   );
 }
