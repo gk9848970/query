@@ -6,8 +6,8 @@ type Book = {
   thumbnail: string;
 };
 
-export async function getData() {
-  const url = `${BASE_URL}/books/pD6arNyKyi8C`;
+export async function getData(bookId: string) {
+  const url = `${BASE_URL}/books/${bookId}`;
 
   try {
     const response = await fetch(url);
