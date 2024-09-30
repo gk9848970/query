@@ -22,14 +22,14 @@ function useUuid() {
 
       return response.json();
     },
-    refetchInterval: 3000, // 3 seconds
+    refetchInterval: 5000, // 3 seconds
   });
 }
 
 const queryClient = new QueryClient();
 
 const UUIDComponent = () => {
-  const { data, status, fetchStatus, refetch } = useUuid();
+  const { data, status, fetchStatus, refetch, dataUpdatedAt } = useUuid();
 
   if (status === "pending") {
     return <div>...</div>;
@@ -42,6 +42,7 @@ const UUIDComponent = () => {
   return (
     <p>
       <div>{data.uuid}</div>
+      <div>{new Date(dataUpdatedAt).toLocaleString()}</div>
       <button onClick={() => refetch()}>Refetch</button>
       <span>{fetchStatus === "fetching" ? "updating..." : null}</span>
     </p>
