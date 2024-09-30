@@ -10,11 +10,13 @@ const useBookQuery = (bookId: string) => {
   return useQuery({
     queryKey: ["book", bookId],
     queryFn: () => getData(bookId),
+    staleTime: 5 * 1000,
   });
 };
 
 function Book({ bookId }: { bookId: string }) {
-  const { data, isError, isPending } = useBookQuery(bookId);
+  const { data, isError, isPending, isStale, refetch, isFetching } =
+    useBookQuery(bookId);
 
   if (isError) {
     return <Error />;
@@ -35,6 +37,14 @@ function Book({ bookId }: { bookId: string }) {
         <h2 className="book-title">{data.title}</h2>
         <small className="book-author">{data.authors?.join(", ")}</small>
       </div>
+      <div className="checkout-wrapper">
+        <button className="primary">Check Out</button>
+        <CheckoutMessage
+          isFetching={isFetching}
+          isStale={isStale}
+          refetch={refetch}
+        />
+      </div>
     </main>
   );
 }
@@ -45,6 +55,43 @@ function Loading() {
 
 function Error() {
   return <main>Woops there was an error...</main>;
+}
+
+function CheckoutMessage({
+  isFetching,
+  isStale,
+  refetch,
+}: {
+  isFetching: boolean;
+  isStale: boolean;
+  refetch: () => void;
+}) {
+  if (isFetching) {
+    return <BackgroundUpdateInProgress />;
+  }
+
+  if (isStale) {
+    return <StaleMessage refetch={refetch} />;
+  }
+
+  return <UpToDate />;
+}
+
+function StaleMessage({ refetch }: { refetch: () => void }) {
+  return (
+    <main>
+      Data is stale, click to refetch
+      <button onClick={refetch}>Refresh</button>
+    </main>
+  );
+}
+
+function BackgroundUpdateInProgress() {
+  return <main>Update is in progress</main>;
+}
+
+function UpToDate() {
+  return <main>Updated Data</main>;
 }
 
 const queryClient = new QueryClient();
