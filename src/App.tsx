@@ -34,41 +34,59 @@ async function fetchDirector(id: string) {
   return response.json();
 }
 
-/*
-One way of dealing with dependant queries, is to combine both queries into one.
-But here deduplication is not possible, since we need to refetch both queries.
-
-[movie1, director1]
-[movie1, director2]
-
-Director data will be fetched twice, since we are not deduplicating the query.
-*/
-const useMovieAndDirector = (title: string) => {
+const useMovie = (title: string) => {
   return useQuery({
     queryKey: ["movie", title],
     queryFn: async () => {
       const movie = await fetchMovie(title);
-      const director = await fetchDirector(movie.director);
-      return { movie, director };
+      return movie;
     },
   });
 };
 
-const Component = ({ title }: { title: string }) => {
-  const { data, status } = useMovieAndDirector(title);
+const useDirector = (id: string) => {
+  return useQuery({
+    queryKey: ["director", id],
+    queryFn: async () => {
+      const director = await fetchDirector(id);
+      return director;
+    },
+    enabled: id !== undefined,
+  });
+};
 
-  if (status === "pending") {
+/*
+The other way could be to use enabled option to have a director query
+dependant on movie query.
+
+This way, deduplication is possible.
+
+The only drawback is now we need to handle the loading state of director query seperately.
+Here we are handling only the query state of movie query.
+*/
+
+const useMovieAndDirector = (title: string) => {
+  const movie = useMovie(title);
+  const director = useDirector(movie.data?.director);
+
+  return { movie, director };
+};
+
+const Component = ({ title }: { title: string }) => {
+  const { movie, director } = useMovieAndDirector(title);
+
+  if (movie.status === "pending") {
     return <div>Loading...</div>;
   }
 
-  if (status === "error") {
+  if (movie.status === "error") {
     return <div>Error: </div>;
   }
 
   return (
     <div>
-      <h1>{data.movie.title}</h1>
-      <h2>{data.director.name}</h2>
+      <h1>{movie.data.title}</h1>
+      <h2>{director.data?.name}</h2>
     </div>
   );
 };
@@ -81,7 +99,7 @@ function App() {
       {/* The rest of your application */}
       <ReactQueryDevtools initialIsOpen={true} />
       <Component title={"The Godfather"} />
-      <Component title={"The Godfather III"} />
+      <Component title={"The Godfather"} />
     </QueryClientProvider>
   );
 }
