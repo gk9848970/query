@@ -6,37 +6,52 @@ import {
 
 const queryClient = new QueryClient();
 
-// Normal fetch
-const fetchRepos = async () => {
-  try {
-    const response = await fetch("https://api.github.com/orgs/TanStack/repos");
-    if (!response.ok) {
-      throw new Error(`Request failed with status: ${response.status}`);
-    }
-    const data = await response.json();
-    return data as string;
-  } catch (error) {
-    console.error("Network error", error);
-  }
+/*
+Only fetch the query if there is any search term
+A query can only be in three states:
+1. Pending
+But it does not tell if the query is currently fetching or not
+There is another thing, query exposes called fetchStatus
+
+status === "pending" && fetchStatus === "fetching" -> Query is fetching
+Which is equivalent to, isLoading === true
+
+2. Success
+3. Error
+
+status === "success" -> There is data in cache
+
+Two approches are, 
+Use enable and then handle various cases, IsLoading, status === "success"
+Or use conditional rendering without enabled flag like
+
+search && <IssuesList /> -> Now issue list will not have to deal with loading or
+not loading but pending state
+*/
+const useIssues = (search: string) => {
+  return useQuery({
+    queryKey: ["issues"],
+    queryFn: async () =>
+      fetch("https://api.github.com/repos/uidotdev/query/issues"),
+    enabled: search !== "",
+  });
 };
 
-// Fetch inside a query
+const IssuesList = () => {
+  const { data, status } = useIssues("query");
 
-const useReposQuery = () => {
-  return useQuery({
-    queryKey: ["repo"],
-    queryFn: async () => {
-      const response = await fetch(
-        "https://api.github.com/orgs/TanStack/repos"
-      );
+  if (status === "pending") return <p>Loading...</p>;
+  if (status === "error") return <p>Error</p>;
 
-      if (!response.ok) {
-        throw new Error(`Request failed with status: ${response.status}`);
-      }
-
-      return (await response.json()) as string;
-    },
-  });
+  return (
+    <ul>
+      {data.map((issue) => (
+        <li key={issue.id}>
+          <a href={issue.html_url}>{issue.title}</a>
+        </li>
+      ))}
+    </ul>
+  );
 };
 
 /*
