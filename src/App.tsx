@@ -3,21 +3,59 @@ import {
   QueryClientProvider,
   useQuery,
 } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+
+/*
+Refetch Interval: Can also be a function that returns boolean, Indicating if we should
+stop refetching. 
+*/
+
+function useUuid() {
+  return useQuery({
+    queryKey: ["uuid"],
+    queryFn: async () => {
+      const response = await fetch(`https://uuid.rocks/json`);
+
+      if (!response.ok) {
+        throw new Error("fetch failed");
+      }
+
+      return response.json();
+    },
+    refetchInterval: 3000, // 3 seconds
+  });
+}
 
 const queryClient = new QueryClient();
 
-/*
-GC - Garbage collection
-A query that has been inactive for gcTime, Will be gargabe collected
-*/
+const UUIDComponent = () => {
+  const { data, status, fetchStatus, refetch } = useUuid();
 
-/*
-Thing to notice, Try and catch is gone
-Only for typescript: https://x.com/t3dotgg/status/1556539631323078657
-*/
+  if (status === "pending") {
+    return <div>...</div>;
+  }
+
+  if (status === "error") {
+    return <div>Error fetching UUID</div>;
+  }
+
+  return (
+    <p>
+      <div>{data.uuid}</div>
+      <button onClick={() => refetch()}>Refetch</button>
+      <span>{fetchStatus === "fetching" ? "updating..." : null}</span>
+    </p>
+  );
+};
 
 function App() {
-  return <QueryClientProvider client={queryClient}></QueryClientProvider>;
+  return (
+    <QueryClientProvider client={queryClient}>
+      {/* The rest of your application */}
+      <ReactQueryDevtools initialIsOpen={true} />
+      <UUIDComponent />
+    </QueryClientProvider>
+  );
 }
 
 export default App;
