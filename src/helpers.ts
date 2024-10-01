@@ -1,5 +1,5 @@
-export async function fetchRepos() {
-  const response = await fetch(`https://api.github.com/orgs/TanStack/repos`);
+export async function fetchRepos(org: string) {
+  const response = await fetch(`https://api.github.com/orgs/${org}/repos`);
 
   if (!response.ok) {
     throw new Error("fetch failed");
@@ -8,9 +8,9 @@ export async function fetchRepos() {
   return response.json();
 }
 
-export async function fetchIssues() {
+export async function fetchIssues(org: string, repo: string) {
   const response = await fetch(
-    `https://api.github.com/repos/TanStack/query/issues`
+    `https://api.github.com/repos/${org}/${repo}/issues`
   );
 
   if (!response.ok) {
@@ -20,8 +20,8 @@ export async function fetchIssues() {
   return response.json();
 }
 
-export async function fetchMembers() {
-  const response = await fetch(`https://api.github.com/orgs/TanStack/members`);
+export async function fetchMembers(org: string) {
+  const response = await fetch(`https://api.github.com/orgs/${org}/members`);
 
   if (!response.ok) {
     throw new Error("fetch failed");
