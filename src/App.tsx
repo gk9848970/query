@@ -4,102 +4,67 @@ import {
   useQuery,
 } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-
-/*
-Refetch Interval: Can also be a function that returns boolean, Indicating if we should
-stop refetching. 
-*/
-
-async function fetchMovie(title: string) {
-  const response = await fetch(
-    `https://ui.dev/api/courses/react-query/movies/${title}`
-  );
-
-  if (!response.ok) {
-    throw new Error("fetch failed");
-  }
-
-  return response.json();
-}
-
-async function fetchDirector(id: string) {
-  const response = await fetch(
-    `https://ui.dev/api/courses/react-query/director/${id}`
-  );
-
-  if (!response.ok) {
-    throw new Error("fetch failed");
-  }
-
-  return response.json();
-}
-
-const useMovie = (title: string) => {
-  return useQuery({
-    queryKey: ["movie", title],
-    queryFn: async () => {
-      const movie = await fetchMovie(title);
-      return movie;
-    },
-  });
-};
-
-const useDirector = (id: string) => {
-  return useQuery({
-    queryKey: ["director", id],
-    queryFn: async () => {
-      const director = await fetchDirector(id);
-      return director;
-    },
-    enabled: id !== undefined,
-  });
-};
-
-/*
-The other way could be to use enabled option to have a director query
-dependant on movie query.
-
-This way, deduplication is possible.
-
-The only drawback is now we need to handle the loading state of director query seperately.
-Here we are handling only the query state of movie query.
-*/
-
-const useMovieAndDirector = (title: string) => {
-  const movie = useMovie(title);
-  const director = useDirector(movie.data?.director);
-
-  return { movie, director };
-};
-
-const Component = ({ title }: { title: string }) => {
-  const { movie, director } = useMovieAndDirector(title);
-
-  if (movie.status === "pending") {
-    return <div>Loading...</div>;
-  }
-
-  if (movie.status === "error") {
-    return <div>Error: </div>;
-  }
-
-  return (
-    <div>
-      <h1>{movie.data.title}</h1>
-      <h2>{director.data?.name}</h2>
-    </div>
-  );
-};
+import { fetchMembers, fetchRepos } from "./helpers";
 
 const queryClient = new QueryClient();
+
+/*
+Parallel queries
+
+1. Having each query seperately
+Fixed in number of queries
+If I need a collective data on all queries, We need to manually do it query by query
+*/
+
+const Component = () => {
+  const repos = useQuery({
+    queryKey: ["repos"],
+    queryFn: fetchRepos,
+  });
+
+  const members = useQuery({
+    queryKey: ["issues"],
+    queryFn: fetchMembers,
+  });
+
+  return (
+    <>
+      <h1>TanStack Dashboard</h1>
+      <h2>Repos</h2>
+      {repos.isPending ? <p>Loading repos...</p> : null}
+      {repos.isError ? <p>Error loading repos: {repos.error.message}</p> : null}
+      {repos.isSuccess ? (
+        <ul>
+          {repos.data.map((repo) => (
+            <li key={repo.id}>{repo.name}</li>
+          ))}
+        </ul>
+      ) : null}
+
+      <hr />
+
+      <h2>Members</h2>
+      {members.isPending ? <p>Loading members...</p> : null}
+      {members.isError ? (
+        <p>Error loading members: {members.error.message}</p>
+      ) : null}
+      {members.isSuccess ? (
+        <ul>
+          {members.data.map((member) => (
+            <li key={member.id}>{member.login}</li>
+          ))}
+        </ul>
+      ) : null}
+    </>
+  );
+};
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       {/* The rest of your application */}
       <ReactQueryDevtools initialIsOpen={true} />
-      <Component title={"The Godfather"} />
-      <Component title={"The Godfather"} />
+      <Component />
     </QueryClientProvider>
   );
 }
